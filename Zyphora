@@ -1,4 +1,4 @@
---[[ Protected by Roblox Fast Luau Obfuscator ]]--
+--[[ Protected by Roblox Luau Obfuscator ]]--
 local _0x6e8152ae9e51 = print;
 pcall(function() if getfenv then getfenv().print = function() end end end);
 
