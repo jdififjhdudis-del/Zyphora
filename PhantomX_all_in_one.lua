@@ -14930,6 +14930,9 @@ return(function(C,...)
                 return
             end
             if not Cc then
+                Lb["Text"]="UNSUPPORTED PLACE | "..Ba["tostring"](Ba["game"]["PlaceId"])
+                Lb["BackgroundColor3"]=Ba["Color3"]["fromRGB"](180,70,70)
+                Lb["Active"]=true
                 ic()
                 return
             end
@@ -14944,11 +14947,20 @@ return(function(C,...)
                         local __src=__embeddedScripts[Cc["scriptUrl"]] or Ba["game"]["HttpGet"](Ba["game"],Cc["scriptUrl"],U(13904))
                         local __fn,__compileErr=Ba["loadstring"](__src)
                         if not __fn then
+                            Lb["Text"]="COMPILE ERROR | IRQ"
+                            Lb["BackgroundColor3"]=Ba["Color3"]["fromRGB"](180,70,70)
+                            Lb["Active"]=true
                             if Ba["warn"] then Ba["warn"]("IRQ RUN compile error: "..Ba["tostring"](__compileErr)) end
                             return
                         end
+                        Lb["Text"]="RUNNING | IRQ"
                         local __ok,__runErr=Ba["pcall"](__fn)
-                        if not __ok and Ba["warn"] then Ba["warn"]("IRQ RUN error: "..Ba["tostring"](__runErr)) end
+                        if not __ok then
+                            Lb["Text"]="RUNTIME ERROR | IRQ"
+                            Lb["BackgroundColor3"]=Ba["Color3"]["fromRGB"](180,70,70)
+                            Lb["Active"]=true
+                            if Ba["warn"] then Ba["warn"]("IRQ RUN error: "..Ba["tostring"](__runErr)) end
+                        end
                         if Cc["secondaryScriptUrl"]then
                             Ba["task"]["wait"](U(36997));
                             Ba["pcall"](function()
