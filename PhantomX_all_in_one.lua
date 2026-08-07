@@ -1497,26 +1497,6 @@ return(function(Fl,...)
             end){[0.78691439784155015*16308]="Wind",[-40749- -14930]="FakeLag",[-11905+26529]="Dance"}
         end
         -- initial Popup disabled: Vita does not support this legacy WindUI dialog
-            return(function(ty)
-                local function wp(oG)
-                    return ty[oG-266185904/-20752]
-                end
-                Tv["_G"]["SelectedLanguage"]="English";
-                hs["Notify"](hs,{[wp(-75845+32261)]="\226\156\133 Language Selected",[wp(-42306+27859)]="English language has been selected",[wp(38129+-27986)]=18712+-18709});
-                Tv["task"]["wait"](wp(-26400+18194));
-                Tv["createMainScript"]()
-            end){[32309-9339]="Duration",[76.320099255583131*-403]="Title",[29991+-25370]=-16389+16390,[28218-29838]="Content"}
-        end},{["Title"]=Xh(1059113204/25334),[Xh(20609-272)]=Xh(-235562453/20993),[Xh(14.823465310570286*2753)]=Xh(60410+-11031),["Callback"]=function()
-            return(function(OA)
-                local function Se(pH)
-                    return OA[pH-(-51847+22611)]
-                end
-                Tv["_G"]["SelectedLanguage"]=Se(-31241- -30217);
-                hs["Notify"](hs,{["Title"]="\226\156\133 \216\170\217\133 \216\167\217\132\216\167\216\174\216\170\217\138\216\167\216\177",[Se(-39321+11625)]=Se(11830-9926),["Duration"]=15538+-15535});
-                Tv["task"]["wait"](Se(-66348- -9805));
-                Tv["createMainScript"]()
-            end){[1.0617029548989114*-25720]=-25299- -25300,[10.899544977248862*2857]="\216\170\217\133 \216\167\216\174\216\170\217\138\216\167\216\177 \216\167\217\132\217\132\216\186\216\169 \216\167\217\132\216\185\216\177\216\168\217\138\216\169",[-28038780/-18207]="Content",[245641884/8707]="Arabic"}
-        end}}});
         Tv["createMainScript"]=function()
             return(function(Rp)
                 local function _i(kn)
@@ -14938,7 +14918,7 @@ return(function(C,...)
                         local __src=__embeddedScripts[Cc["scriptUrl"]] or Ba["game"]["HttpGet"](Ba["game"],Cc["scriptUrl"],U(13904))
                         local __fn,__compileErr=Ba["loadstring"](__src)
                         if not __fn then
-                            Lb["Text"]="COMPILE ERROR | IRQ"
+                            Lb["Text"]="COMPILE: "..Ba["tostring"](__compileErr)
                             Lb["BackgroundColor3"]=Ba["Color3"]["fromRGB"](180,70,70)
                             Lb["Active"]=true
                             if Ba["warn"] then Ba["warn"]("IRQ RUN compile error: "..Ba["tostring"](__compileErr)) end
