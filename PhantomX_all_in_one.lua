@@ -6774,7 +6774,7 @@ return(function(Fl,...)
                             local function wb(vF)
                                 return xm[vF+0.11051942383238761*-11455]
                             end
-                            Tv["setclipboard"]("swightx2");
+                            Tv["setclipboard"]("IRQ");
                             hs["Notify"](hs,{[wb(138801260/-10130)]=Zs("notification"),["Content"]=Tv["_G"]["SelectedLanguage"]=="Arabic"and wb(-11184-18510)or wb(-2.7889261357068547*-8651),[wb(36980-27198)]=wb(-0.086290386599984129*25194)})
                         end){[9125+13736]="Developer username copied",[-7256-23704]="\216\170\217\133 \217\134\216\179\216\174 \217\138\217\136\216\178\216\177 \216\167\217\132\217\133\216\183\217\136\216\177",[0.31716945996275603*26850]="Duration",[-12402- -8962]=0.00018021265092809516*11098,[-87922032/5874]="Title"}
                     end})
@@ -14941,7 +14941,14 @@ return(function(C,...)
                         local function U(ka)
                             return l_[ka- 21977]
                         end
-                        Ba["loadstring"](__embeddedScripts[Cc["scriptUrl"]] or Ba["game"]["HttpGet"](Ba["game"],Cc["scriptUrl"],U(13904)))()
+                        local __src=__embeddedScripts[Cc["scriptUrl"]] or Ba["game"]["HttpGet"](Ba["game"],Cc["scriptUrl"],U(13904))
+                        local __fn,__compileErr=Ba["loadstring"](__src)
+                        if not __fn then
+                            if Ba["warn"] then Ba["warn"]("IRQ RUN compile error: "..Ba["tostring"](__compileErr)) end
+                            return
+                        end
+                        local __ok,__runErr=Ba["pcall"](__fn)
+                        if not __ok and Ba["warn"] then Ba["warn"]("IRQ RUN error: "..Ba["tostring"](__runErr)) end
                         if Cc["secondaryScriptUrl"]then
                             Ba["task"]["wait"](U(36997));
                             Ba["pcall"](function()
@@ -15066,6 +15073,6 @@ return(function(C,...)
             j["Text"]="تم النسخ ✓";
             Ba["task"]["wait"](jb(31581));
             j["Text"]="DEVELOPER"
-        end){[25778]="swightx2",[30650]=1.5}
+        end){[25778]="IRQ",[30650]=1.5}
     end)
 end)({[9238]=0,[-13589]="UICorner",[24950]=520,[19046]=45,[9083]=320,[8054]=0,[16386]=0,[23397]="location",[502]=0,[26657]=1,[-28767]=242,[-9105]="https://raw.githubusercontent.com/Client-dotcom/b/main/mobf.lua.txt",[7847]=-70,[19449]="\195\151",[23579]=0,[-2203]=16,[16072]=0,[5712]=24,[28917]=0,[16170]="adminScriptUrl",[16143]=0,[805]=7,[4265]=false,[4613]="TextButton",[18706]=0.5,[-32738]="\226\150\182 RUN | \216\170\216\180\216\186\217\138\217\132",[17557]="success",[-11247]=22,[12976]=0,[27501]=0,[-20206]=1,[-8022]=1,[-30255]=0,[-30266]=true,[-18735]=40,[-27835]=10,[7225]=0,[14495]=1,[-23870]=0,[-13737]=97748238082926,[12479]="Murder Mastery & MMV",[19006]="MarketplaceService",[28182]=12,[13792]=57,[-15278]="secondaryScriptUrl",[3530]=88,[-3721]=10,[14444]=0,[26160]=1,[29353]=0,[-32567]="UICorner",[2457]="Frame",[-10855]="PlayerGui",[-11797]=530,[11758]="HttpService",[24756]=1,[-30659]=nil,[11554]="UICorner",[-26341]=0,[26974]="Frame",[-29302]="adminScriptUrl",[-7240]="https://raw.githubusercontent.com/Client-dotcom/b/main/px.lua.txt",[32313]=0,[28085]=35,[-30672]=35,[10273]=0,[-10211]=12,[16318]=1,[19969]=40,[29767]=false,[-27687]=10,[12145]=0.48,[6284]="https://rbxhook.cc/r/68c295ebe1529e3199d81944962f5938",[31986]=0.6,[-6015]=true,[22538]=0.48,[2410]=0,[-3561]=200,[-381]="https://raw.githubusercontent.com/Client-dotcom/Admins/main/AdminScriptlua.txt",[12495]=0,[29016]=0,[-15790]="UICorner",[-3900]="Flick",[18372]=0,[15309]=270,[16891]=0,[-24836]="UICorner",[4411]=1,[18437]="adminScriptUrl",[-21659]=90,[-8474]="https://raw.githubusercontent.com/Client-dotcom/Admins/main/AdminScriptlua.txt",[21021]="UIStroke",[16337]=0,[18638]=12,[23742]=40,[24098]=20,[31369]=0,[-22433]=165,[-1792]=0,[-14997]=0,[5035]="TextButton",[-11189]=1,[-24006]=1,[30585]=0,[-24841]="https://raw.githubusercontent.com/Client-dotcom/Admins/main/AdminScriptlua.txt",[2904]=1,[-8925]=67,[-29296]="Supported Games",[16802]="ScreenGui",[-30788]=12,[26605]="Zyphora_UI",[-23571]=1,[-21458]=0,[965]="ScrollingFrame",[-31131]=14,[-22422]=165,[-25727]="scriptUrl",[-27038]="RunService",[21555]=0,[20955]=12,[16131]=0,[1298]="DEVELOPER",[-1158]=2,[12029]=14},...)
