@@ -412,6 +412,8 @@ function Library:Window(Args)
     local function rTI(i,p)  table.insert(_R.ti, {i,p}); return i end
 
     local Xova=Library:Create("ScreenGui",{Name="Xova",Parent=Library:Parent(),ZIndexBehavior=Enum.ZIndexBehavior.Global,DisplayOrder=10,IgnoreGuiInset=true,ResetOnSpawn=false})
+    Library.__IRQWindowCount=(Library.__IRQWindowCount or 0)+1
+    Library.__IRQLastWindow=Xova
     local function GetVP() local c=workspace.CurrentCamera; return c and c.ViewportSize or Vector2.new(1280,720) end
     local function MaxSc() local v=GetVP(); return math.min((v.X*.95)/RAW_W,(v.Y*.95)/RAW_H) end
     local function CS(s)   return math.clamp(s,0.35,MaxSc()) end
@@ -1422,6 +1424,9 @@ end
 
 -- Shared Vita instance for embedded map scripts.
 _G.__IRQ_VITA = Library
+if type(getgenv)=="function" then
+    pcall(function() getgenv().__IRQ_VITA = Library end)
+end
 
 local __embeddedScripts={
     ["https://raw.githubusercontent.com/Client-dotcom/b/main/px.lua.txt"]=[=[-- This file was protected using Luraph Obfuscator v14.7 [https://lura.ph/]
@@ -1474,7 +1479,12 @@ return(function(Fl,...)
         end
         return nil
     end)
-    local hs=(Tv["_G"] and Tv["_G"]["__IRQ_VITA"]) or er
+    local __irqEnv=(type(Tv["getgenv"])=="function" and Tv["getgenv"]()) or Tv["_G"] or _G
+    local hs=__irqEnv and __irqEnv["__IRQ_VITA"]
+    if not hs or type(hs["Window"])~="function" then
+        error("IRQ Vita bridge unavailable for TimeBombDuels")
+    end
+    if Tv["print"] then Tv["print"]("IRQ: Vita bridge attached to TimeBombDuels") end
     if hs then
                 hs["Notify"]=function(self,a) a=a or {}; return self:Notification({Title=a["Title"] or "IRQ",Desc=a["Content"] or a["Desc"] or "",Color=a["Color"] or "#6495ED",Duration=a["Duration"] or 3}) end
                 hs["Popup"]=function(self,a) a=a or {}; return self:Notification({Title=a["Title"] or "IRQ",Desc=a["Content"] or a["Desc"] or "",Color="#6495ED",Duration=a["Duration"] or 4}) end
@@ -14947,9 +14957,24 @@ return(function(C,...)
                             if Ba["warn"] then Ba["warn"]("IRQ RUN error: "..Ba["tostring"](__runErr)) end
                         end
                         if __ok then
-                            Lb["Text"]="FINISHED | NO UI DETECTED"
-                            Lb["BackgroundColor3"]=Ba["Color3"]["fromRGB"](210,150,50)
-                            if Ba["print"] then Ba["print"]("IRQ: payload returned without an error; no UI was confirmed") end
+                            local __uiCount=tonumber(Ba["_G"] and Ba["_G"]["__IRQ_VITA"] and Ba["_G"]["__IRQ_VITA"]["__IRQWindowCount"] or 0) or 0
+                            if __uiCount>0 then
+                                Lb["Text"]="UI CREATED | IRQ"
+                                Lb["BackgroundColor3"]=Ba["Color3"]["fromRGB"](60,170,90)
+                                if Ba["print"] then Ba["print"]("IRQ: Vita window confirmed; count="..Ba["tostring"](__uiCount)) end
+                            else
+                                Lb["Text"]="NO UI | FALLBACK"
+                                Lb["BackgroundColor3"]=Ba["Color3"]["fromRGB"](180,120,40)
+                                if Ba["print"] then Ba["warn"]("IRQ: payload returned without creating a Vita window") end
+                                Ba["pcall"](function()
+                                    local __v=Ba["_G"] and Ba["_G"]["__IRQ_VITA"]
+                                    if __v and __v["Window"] then
+                                        local __w=__v["Window"](__v,{Title="Zyphora | TimeBombDuels",SubTitle="IRQ • Vita fallback",Icon="rbxassetid://118474750048662",ToggleKey=Ba["Enum"]["KeyCode"]["RightControl"],AutoScale=true,Scale=1.0})
+                                        local __p=__w and __w["NewPage"] and __w["NewPage"](__w,{Title="Status",Desc="The map payload finished, but did not create its own tab."})
+                                        if __p and __p["Paragraph"] then __p["Paragraph"](__p,{Title="Payload finished",Desc="Press RightControl to toggle this Vita window."}) end
+                                    end
+                                end)
+                            end
                         end
                         if Cc["secondaryScriptUrl"]then
                             Ba["task"]["wait"](U(36997));
