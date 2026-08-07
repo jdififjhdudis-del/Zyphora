@@ -1410,6 +1410,19 @@ end
 return Library
 ]=]
 
+-- Compile and execute the embedded Vita source before exposing it to map scripts.
+local __vitaChunk, __vitaCompileError = loadstring(__vitaSource)
+if not __vitaChunk then
+    error("IRQ Vita compile failed: " .. tostring(__vitaCompileError))
+end
+local Library = __vitaChunk()
+if type(Library) ~= "table" then
+    error("IRQ Vita did not return a library table")
+end
+
+-- Shared Vita instance for embedded map scripts.
+_G.__IRQ_VITA = Library
+
 local __embeddedScripts={
     ["https://raw.githubusercontent.com/Client-dotcom/b/main/px.lua.txt"]=[=[-- This file was protected using Luraph Obfuscator v14.7 [https://lura.ph/]
 
@@ -1461,8 +1474,8 @@ return(function(Fl,...)
         end
         return nil
     end)
-    if Ft and er then
-        local hs=er;
+    local hs=(Tv["_G"] and Tv["_G"]["__IRQ_VITA"]) or er
+    if hs then
                 hs["Notify"]=function(self,a) a=a or {}; return self:Notification({Title=a["Title"] or "IRQ",Desc=a["Content"] or a["Desc"] or "",Color=a["Color"] or "#6495ED",Duration=a["Duration"] or 3}) end
                 hs["Popup"]=function(self,a) a=a or {}; return self:Notification({Title=a["Title"] or "IRQ",Desc=a["Content"] or a["Desc"] or "",Color="#6495ED",Duration=a["Duration"] or 4}) end
                 hs["SetTheme"]=function(self,theme) return true end
