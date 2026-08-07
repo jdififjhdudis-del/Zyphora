@@ -1490,11 +1490,15 @@ return(function(Fl,...)
                 hs["Popup"]=function(self,a) a=a or {}; return self:Notification({Title=a["Title"] or "IRQ",Desc=a["Content"] or a["Desc"] or "",Color="#6495ED",Duration=a["Duration"] or 4}) end
                 hs["SetTheme"]=function(self,theme) return true end
                 hs["CreateWindow"]=function(self,a)
+                    if Tv["print"] then Tv["print"]("IRQ TRACE: CreateWindow called") end
                     a=a or {}
                     local w=self:Window({Title=a["Title"] or "IRQ",SubTitle=a["SubTitle"] or a["Author"] or "",Icon="rbxassetid://118474750048662",ToggleKey=Enum.KeyCode.RightControl,AutoScale=true,Scale=1.0})
+                    if Tv["print"] then Tv["print"]("IRQ TRACE: Vita Window returned") end
                     w["Section"]=function(page,args)
+                        if Tv["print"] then Tv["print"]("IRQ TRACE: Section called") end
                         args=args or {}
                         local p=page:NewPage({Title=args["Title"] or "",Desc=args["Desc"] or "",Icon=args["Icon"] or "layout-dashboard"})
+                        if Tv["print"] then Tv["print"]("IRQ TRACE: Section page created") end
                         p["Tab"]=function(self2,tabArgs) tabArgs=tabArgs or {}; return self2:NewPage({Title=tabArgs["Title"] or "",Desc=tabArgs["Desc"] or "",Icon=tabArgs["Icon"] or "layout-dashboard"}) end
                         return p
                     end
@@ -1544,6 +1548,7 @@ return(function(Fl,...)
                         hs["Notify"](hs,{["Title"]=Zs(QB(16.915518824609734*-1089)),["Content"]=Zs(QB(32012-1954)),["Duration"]=QB(630+20539)})
                     end){[-0.82978641523956131*25985]="https://discord.gg/uRtbxxxrau",[32940+-17689]=-7709- -7713,[12563- -11577]="linkCopiedContent",[65520588/-2692]="linkCopied"}
                 end}}})
+                if Tv["print"] then Tv["print"]("IRQ TRACE: about to invoke CreateWindow") end
                 local tC=hs["CreateWindow"](hs,{[_i(261928940/-9230)]=_i(-26501- -14201),[_i(-274288052/20549)]=_i(12.610510805500983*-2036),["Author"]="تم فك التشفير😹🥀",[_i(-6820+3285)]=_i(-57941- -18967),["Size"]=Tv["UDim2"]["fromOffset"](_i(-2.6973620522749275*8264),_i(-0.56667742977074587*-12388)),[_i(756- -22503)]="Indigo",[_i(-684416438/32009)]="rbxassetid://5859552536",["BackgroundImageTransparency"]=2.8409090909090909e-05*21120,[_i(-27248+14472)]=_i(-9673- -16723),[_i(497147112/-18524)]={["Enabled"]=true,[_i(0.18324087591240876*17125)]=_i(-218970990/21126),[_i(539844868/27388)]=function()
                     return(function(Ht)
                         local function Oy(pn)
