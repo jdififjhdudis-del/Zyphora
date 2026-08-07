@@ -1540,7 +1540,7 @@ return(function(Fl,...)
                     hs["Notify"](hs,{[_i(-2.6056442629038248*5386)]=_i(-1210199757/31161),["Content"]="Failed to load UI",["Duration"]=_i(-7310+-24949)})
                     return
                 end
-                hs=mi;
+                -- Keep the embedded Vita compatibility bridge; do not replace it with the remote object.
                 hs["TransparencyValue"]=6.0233706782315385e-06*16602;
                 hs["SetTheme"](hs,_i(12812- -1822))
                 local Pm,if_,ie,Hg,mt,FC,ak,rn,Cw,CB=Tv["game"]["GetService"](Tv["game"],_i(-0.32303014101450245*-29926)),Tv["game"]["GetService"](Tv["game"],_i(-52500+31837)),Tv["game"]["GetService"](Tv["game"],_i(24462-25146)),Tv["game"]["GetService"](Tv["game"],"TweenService"),Tv["game"]["GetService"](Tv["game"],_i(37991-28408)),Tv["game"]["GetService"](Tv["game"],"Stats"),Tv["game"]["GetService"](Tv["game"],"TeleportService"),Tv["game"]["GetService"](Tv["game"],_i(-0.0023375984251968506*-8128)),Tv["game"]["GetService"](Tv["game"],_i(-512278923/-31083)),Tv["game"]["GetService"](Tv["game"],_i(-1086996280/27886))
