@@ -14925,12 +14925,18 @@ return(function(C,...)
                             return
                         end
                         Lb["Text"]="RUNNING | IRQ"
+                        if Ba["print"] then Ba["print"]("IRQ: payload compiled; executing "..Ba["tostring"](Cc["name"])) end
                         local __ok,__runErr=Ba["pcall"](__fn)
                         if not __ok then
                             Lb["Text"]="RUNTIME ERROR | IRQ"
                             Lb["BackgroundColor3"]=Ba["Color3"]["fromRGB"](180,70,70)
                             Lb["Active"]=true
                             if Ba["warn"] then Ba["warn"]("IRQ RUN error: "..Ba["tostring"](__runErr)) end
+                        end
+                        if __ok then
+                            Lb["Text"]="FINISHED | NO UI DETECTED"
+                            Lb["BackgroundColor3"]=Ba["Color3"]["fromRGB"](210,150,50)
+                            if Ba["print"] then Ba["print"]("IRQ: payload returned without an error; no UI was confirmed") end
                         end
                         if Cc["secondaryScriptUrl"]then
                             Ba["task"]["wait"](U(36997));
@@ -14968,7 +14974,8 @@ return(function(C,...)
                 return rb[cb+-3390]
             end
             if not a_ then
-                Lb["Text"]="LOADING...";
+                Lb["Text"]="CLICKED | IRQ";
+                if Ba["print"] then Ba["print"]("IRQ: RUN callback reached") end
                 Lb["BackgroundColor3"]=Ba["Color3"]["fromRGB"](P(12464),P(-7664),100);
                 Lb["Active"]=P(-9818);
                 e_()
