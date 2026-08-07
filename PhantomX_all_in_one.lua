@@ -1526,21 +1526,8 @@ return(function(Fl,...)
                     return Rp[kn- -0.35964504978589484*19383]
                 end
                 Zc()
-                local Zr,mi=Tv["pcall"](function()
-                    return(function(Ui)
-                        local function Bb(dt)
-                            return Ui[dt-(-15680-7355)]
-                        end
-                        local XE=Tv["game"]["HttpGet"](Tv["game"],Bb(-56317- -3164),true)
-                        return Tv["loadstring"](XE)()
-                    end){[-22924-7194]="https://raw.githubusercontent.com/ArchIsDead/vita-ui-modified/refs/heads/main/source.lua"}
-                end)
-                if not(not Zr)then
-                else
-                    hs["Notify"](hs,{[_i(-2.6056442629038248*5386)]=_i(-1210199757/31161),["Content"]="Failed to load UI",["Duration"]=_i(-7310+-24949)})
-                    return
-                end
-                -- Keep the embedded Vita compatibility bridge; do not replace it with the remote object.
+                -- The embedded Vita bridge is already initialized; never reload remote UI code here.
+                if Tv["print"] then Tv["print"]("IRQ: embedded Vita bridge ready; continuing to TimeBombDuels tabs") end
                 hs["TransparencyValue"]=6.0233706782315385e-06*16602;
                 hs["SetTheme"](hs,_i(12812- -1822))
                 local Pm,if_,ie,Hg,mt,FC,ak,rn,Cw,CB=Tv["game"]["GetService"](Tv["game"],_i(-0.32303014101450245*-29926)),Tv["game"]["GetService"](Tv["game"],_i(-52500+31837)),Tv["game"]["GetService"](Tv["game"],_i(24462-25146)),Tv["game"]["GetService"](Tv["game"],"TweenService"),Tv["game"]["GetService"](Tv["game"],_i(37991-28408)),Tv["game"]["GetService"](Tv["game"],"Stats"),Tv["game"]["GetService"](Tv["game"],"TeleportService"),Tv["game"]["GetService"](Tv["game"],_i(-0.0023375984251968506*-8128)),Tv["game"]["GetService"](Tv["game"],_i(-512278923/-31083)),Tv["game"]["GetService"](Tv["game"],_i(-1086996280/27886))
