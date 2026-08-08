@@ -1409,7 +1409,6 @@ end
 
 return Library
 ]=]
-_G.__vitaSource = __vitaSource
 
 local __embeddedScripts={
     ["https://raw.githubusercontent.com/Client-dotcom/b/main/px.lua.txt"]=[=[-- This file was protected using Luraph Obfuscator v14.7 [https://lura.ph/]
@@ -1517,18 +1516,7 @@ return(function(Fl,...)
                     return Rp[kn- -0.35964504978589484*19383]
                 end
                 Zc()
-                local Zr,mi=Tv["pcall"](function()
-                    return(function(Ui)
-                        local function Bb(dt)
-                            return Ui[dt-(-15680-7355)]
-                        end
-                        local __vs=__vitaSource
-                            or (Tv["_G"] and Tv["_G"]["__vitaSource"])
-                            or (Tv["rawget"] and Tv["rawget"](Tv["_G"],"__vitaSource"))
-                        if not __vs then hs["Notify"](hs,{["Title"]="Error",["Content"]="vitaSource nil",["Duration"]=5}) return nil end
-                        return Tv["loadstring"](__vs)()
-                    end){[-22924-7194]="https://raw.githubusercontent.com/ArchIsDead/vita-ui-modified/refs/heads/main/source.lua"}
-                end)
+                local Zr,mi=true,hs  -- reuse already-loaded vita instance
                 if not(not Zr)then
                 else
                     hs["Notify"](hs,{[_i(-2.6056442629038248*5386)]=_i(-1210199757/31161),["Content"]="Failed to load UI",["Duration"]=_i(-7310+-24949)})
@@ -14967,7 +14955,6 @@ return(function(C,...)
                             return
                         end
                         Lb["Text"]="RUNNING | IRQ"
-                        Ba["_G"]["__vitaSource"]=__vitaSource
                         local __ok,__runErr=Ba["pcall"](__fn)
                         if not __ok then
                             Lb["Text"]="RUNTIME ERROR | IRQ"
