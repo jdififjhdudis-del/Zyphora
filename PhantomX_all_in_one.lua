@@ -7705,25 +7705,41 @@ if not NL then
 end
 
 if not NL then
-    error("Failed to load Neverlose UI library from all sources")
+    warn("Embedded NLUI failed, trying GitHub fallback...")
+    local ok, src = pcall(function() return game:HttpGet("https://raw.githubusercontent.com/ImInsane-1337/neverlose-ui/refs/heads/main/source/library.lua", true) end)
+    if ok and type(src) == "string" and #src > 100 then
+        local fn = loadstring(src)
+        if fn then
+            local ok2, lib = pcall(fn)
+            if ok2 and lib then NL = lib end
+        end
+    end
+end
+
+if not NL then
+    warn("CRITICAL: Failed to load Neverlose UI from ALL sources. UI will not appear.")
 end
 
 -- Store for reuse
 if _G then _G.__nluiLib = NL end
 
--- Set theme colors to match Zyphora style
-local Accent = Color3.fromRGB(255, 0, 127)
-local Gradient = Color3.fromRGB(150, 0, 75)
+-- Set theme colors to match Zyphora style (only if NL loaded successfully)
+if NL then
+    local Accent = Color3.fromRGB(255, 0, 127)
+    local Gradient = Color3.fromRGB(150, 0, 75)
 
-NL.Theme.Accent = Accent
-NL.Theme.AccentGradient = Gradient
-NL:ChangeTheme("Accent", Accent)
-NL:ChangeTheme("AccentGradient", Gradient)
+    pcall(function()
+        NL.Theme.Accent = Accent
+        NL.Theme.AccentGradient = Gradient
+        NL:ChangeTheme("Accent", Accent)
+        NL:ChangeTheme("AccentGradient", Gradient)
+    end)
+end
 
 -- === Vita UI Compatible Wrapper ===
 local VitaCompat = {}
 
-VitaCompat.Exec = NL.Exec or {
+VitaCompat.Exec = (NL and NL.Exec) or {
     name = "Unknown",
     clipboard = type(setclipboard) == "function",
     readfile = type(readfile) == "function",
@@ -7732,7 +7748,7 @@ VitaCompat.Exec = NL.Exec or {
     gethui = type(gethui) == "function"
 }
 
-VitaCompat.Cfg = NL.Flags or {}
+VitaCompat.Cfg = (NL and NL.Flags) or {}
 
 -- Internal state
 local _pageCounter = 0
@@ -8032,8 +8048,23 @@ end
 
 -- Theme
 function VitaCompat:SetTheme(t)
-    if t.Accent then NL.Theme.Accent = t.Accent; pcall(function() NL:ChangeTheme("Accent", t.Accent) end) end
-    if t.AccentGradient then NL.Theme.AccentGradient = t.AccentGradient; pcall(function() NL:ChangeTheme("AccentGradient", t.AccentGradient) end) end
+    -- Handle string theme name (e.g. "Dark", "Light") or table with specific colors
+    if type(t) == "string" then
+        -- Apply preset themes
+        if t == "Dark" then
+            pcall(function() NL:ChangeTheme("Background", Color3.fromRGB(12, 12, 14)) end)
+            pcall(function() NL:ChangeTheme("Background 2", Color3.fromRGB(10, 10, 12)) end)
+        elseif t == "Light" then
+            pcall(function() NL:ChangeTheme("Background", Color3.fromRGB(240, 240, 240)) end)
+            pcall(function() NL:ChangeTheme("Background 2", Color3.fromRGB(230, 230, 230)) end)
+        end
+    elseif type(t) == "table" then
+        if t.Accent then pcall(function() NL:ChangeTheme("Accent", t.Accent) end) end
+        if t.AccentGradient then pcall(function() NL:ChangeTheme("AccentGradient", t.AccentGradient) end) end
+        if t.Background then pcall(function() NL:ChangeTheme("Background", t.Background) end) end
+        if t.Text then pcall(function() NL:ChangeTheme("Text", t.Text) end) end
+        if t.Outline then pcall(function() NL:ChangeTheme("Outline", t.Outline) end) end
+    end
 end
 
 function VitaCompat:GetTheme()
@@ -8060,19 +8091,23 @@ function VitaCompat:SetWindowTitle() end
 function VitaCompat:SetWindowSubTitle() end
 function VitaCompat:SetExtraTitle() end
 function VitaCompat:SetExtraSubTitle() end
+-- Additional methods that obfuscated scripts may call
+function VitaCompat:CreateWindow(args) return self:Window(args or {}) end
+function VitaCompat:SetFontSize() end
+function VitaCompat:GetFlags() return NL.Flags or {} end
+function VitaCompat:SaveConfig(name) pcall(function() NL:SaveConfig(name) end) end
+function VitaCompat:LoadConfig(name) pcall(function() NL:LoadConfig(name) end) end
+function VitaCompat:DeleteConfig(name) pcall(function() NL:DeleteConfig(name) end) end
+function VitaCompat:GetConfigs() local ok, r = pcall(function() return NL:GetConfigs() end); if ok then return r end; return {} end
+function VitaCompat:Unload() pcall(function() NL:Unload() end) end
 function VitaCompat:Destroy() pcall(function() NL:Unload() end) end
+-- TransparencyValue property (used by obfuscated scripts)
+VitaCompat.TransparencyValue = 0
 
-return VitaCompat
-
-
-_G.__vitaSource = nil -- Using Neverlose UI adapter instead
-_G.__vitaLib = nil -- Will be set by the adapter below
-
--- Pre-load Vita UI library into global so embedded scripts can use it directly
--- Pre-load the Neverlose UI adapter (it self-registers as _G.__vitaLib)
-do local _pok,_plib=pcall(function() return loadstring(game:HttpGet("https://raw.githubusercontent.com/ImInsane-1337/neverlose-ui/refs/heads/main/source/library.lua",true))() end)
-   if _pok and _plib then _G.__nluiLib=_plib end
-end
+-- Store VitaCompat adapter in global so all obfuscated scripts can find it
+_G.__vitaSource = nil -- No longer using Vita UI source
+_G.__vitaLib = VitaCompat -- Neverlose UI adapter with Vita UI compatible API
+_G.__nluiLib = NL -- Raw Neverlose UI library for direct access
 
 local __embeddedScripts={
     ["https://raw.githubusercontent.com/Client-dotcom/b/main/px.lua.txt"]=[=[-- This file was protected using Luraph Obfuscator v14.7 [https://lura.ph/]
@@ -8119,17 +8154,20 @@ return(function(Fl,...)
         -- S1: Try pre-loaded VitaCompat adapter
         local _VL=nil; pcall(function() _VL=(Tv["_G"] or Tv)["__vitaLib"] end)
         if _VL then return _VL end
-        -- S2: Try pre-loaded Neverlose UI lib and wrap it
-        local _NL=nil; pcall(function() _NL=(Tv["_G"] or Tv)["__nluiLib"] end)
-        if _NL then
-            local _VF=Tv["loadstring"](Tv["readfile"] and Tv["readfile"]("vita_adapter.lua") or "")
-            if _VF then local _OK,_R=Tv["pcall"](_VF); if _OK then return _R end end
-        end
-        -- S3: Load neverlose-ui from GitHub directly, then create minimal adapter
+        -- S2: Try pre-loaded Neverlose UI lib - check __vitaLib again (may have been set later)
+        local _NL2=nil; pcall(function() _NL2=(Tv["_G"] or Tv)["__vitaLib"] end)
+        if _NL2 then return _NL2 end
+        -- S3: Load neverlose-ui from GitHub directly, then check for adapter
         local _HO,_HI=Tv["pcall"](function() return Tv["game"]["HttpGet"](Tv["game"],"https://raw.githubusercontent.com/ImInsane-1337/neverlose-ui/refs/heads/main/source/library.lua",true) end)
         if _HO and type(_HI)=="string" and #_HI>100 then
             local _HF=Tv["loadstring"](_HI); if _HF then local _OK2,_R2=Tv["pcall"](_HF); if _OK2 and _R2 then _G.__nluiLib=_R2 end end
         end
+        -- S4: Final check - __vitaLib may have been set by another path
+        local _VL3=nil; pcall(function() _VL3=(Tv["_G"] or Tv)["__vitaLib"] end)
+        if _VL3 then return _VL3 end
+        -- S5: Last resort - return raw NL lib if available
+        local _NLR=nil; pcall(function() _NLR=(Tv["_G"] or Tv)["__nluiLib"] end)
+        if _NLR then return _NLR end
         return nil
     end)
     if Ft and er then
@@ -13593,12 +13631,22 @@ return(function(hx,...)
             local _VL=nil; pcall(function() _VL=(Mq["_G"] or Mq)["__vitaLib"] end)
             if _VL then return _VL end
             local _NL=nil; pcall(function() _NL=(Mq["_G"] or Mq)["__nluiLib"] end)
-            if _NL then return _VL end
+            if _NL then
+                -- Re-check __vitaLib in case adapter was registered after initial check
+                local _VLb=nil; pcall(function() _VLb=(Mq["_G"] or Mq)["__vitaLib"] end)
+                if _VLb then return _VLb end
+                return _NL
+            end
             -- Load neverlose-ui from GitHub
             local _HO,_HI=Mq["pcall"](function() return Mq["game"]["HttpGet"](Mq["game"],"https://raw.githubusercontent.com/ImInsane-1337/neverlose-ui/refs/heads/main/source/library.lua",true) end)
             if _HO and type(_HI)=="string" and #_HI>100 then
                 local _HF=Mq["loadstring"](_HI); if _HF then local _OK2,_R2=Mq["pcall"](_HF); if _OK2 and _R2 then _G.__nluiLib=_R2 end end
             end
+            -- Final check for adapter after all load attempts
+            local _VLf=nil; pcall(function() _VLf=(Mq["_G"] or Mq)["__vitaLib"] end)
+            if _VLf then return _VLf end
+            local _NLf=nil; pcall(function() _NLf=(Mq["_G"] or Mq)["__nluiLib"] end)
+            if _NLf then return _NLf end
             return fm(-438361002/-14122)
         end){[220- -27262]=nil}
     end)
@@ -16930,12 +16978,21 @@ return(function(hx,...)
                     local _VL=nil; pcall(function() _VL=(Mq["_G"] or Mq)["__vitaLib"] end)
                     if _VL then return _VL end
                     local _NL=nil; pcall(function() _NL=(Mq["_G"] or Mq)["__nluiLib"] end)
-                    if _NL then return _VL end
+                    if _NL then
+                        local _VLb=nil; pcall(function() _VLb=(Mq["_G"] or Mq)["__vitaLib"] end)
+                        if _VLb then return _VLb end
+                        return _NL
+                    end
                     -- Load neverlose-ui from GitHub
                     local _HO,_HI=Mq["pcall"](function() return Mq["game"]["HttpGet"](Mq["game"],"https://raw.githubusercontent.com/ImInsane-1337/neverlose-ui/refs/heads/main/source/library.lua",true) end)
                     if _HO and type(_HI)=="string" and #_HI>100 then
                         local _HF=Mq["loadstring"](_HI); if _HF then local _OK2,_R2=Mq["pcall"](_HF); if _OK2 and _R2 then _G.__nluiLib=_R2 end end
                     end
+                    -- Final check for adapter
+                    local _VLc=nil; pcall(function() _VLc=(Mq["_G"] or Mq)["__vitaLib"] end)
+                    if _VLc then return _VLc end
+                    local _NLc=nil; pcall(function() _NLc=(Mq["_G"] or Mq)["__nluiLib"] end)
+                    if _NLc then return _NLc end
                     return nil
                 end)
                 if not(not Hl)then
