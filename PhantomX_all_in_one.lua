@@ -1,14 +1,7 @@
 -- Embedded decrypted scripts; selected by PlaceId through the existing loader.
--- Vita UI → Neverlose UI Adapter (Embedded)
--- Neverlose UI library embedded + Vita UI compatible wrapper
-
-local HttpService = game:GetService("HttpService")
-local Players = game:GetService("Players")
-local UserInputService = game:GetService("UserInputService")
-local RunService = game:GetService("RunService")
-
--- === Embedded Neverlose UI Library ===
-local __nluiSource = [=[local Library do 
+local __vitaSource=[=[-- Neverlose UI + VitaCompat Adapter (replaces Vita UI)
+local __nluiSource = [=[
+local Library do 
     local Workspace = game:GetService("Workspace")
     local UserInputService = game:GetService("UserInputService")
     local Players = game:GetService("Players")
@@ -7678,105 +7671,107 @@ getgenv().Library = Library
 return Library
 ]=]
 
--- Load the embedded neverlose-ui library
+-- VitaCompat: Neverlose UI adapter with Vita UI-compatible API
+-- This wraps Neverlose UI to look like Vita UI so obfuscated scripts work unchanged
+
 local NL = nil
 
--- Strategy 1: Try pre-loaded
-if _G and _G.__nluiLib then
-    NL = _G.__nluiLib
-end
+-- Load NLUI with executor compatibility shim
+do
+    -- Executor compatibility: provide missing functions as no-ops
+    if not isfolder then isfolder = function() return false end end
+    if not makefolder then makefolder = function() end end
+    if not writefile then writefile = function() end end
+    if not readfile then readfile = function() return "" end end
+    if not listfiles then listfiles = function() return {} end end
+    if not delfolder then delfolder = function() end end
+    if not delfile then delfile = function() end end
+    if not getgenv then getgenv = function() return _G end end
+    if not gethui then gethui = function() return game:GetService("CoreGui") end end
+    if not cloneref then cloneref = function(x) return x end end
 
--- Strategy 2: Load from embedded source
-if not NL then
-    local ok, lib = pcall(function() return loadstring(__nluiSource)() end)
-    if ok and lib then NL = lib end
-end
-
--- Strategy 3: Load from GitHub as fallback
-if not NL then
-    local ok, src = pcall(function() return game:HttpGet("https://raw.githubusercontent.com/ImInsane-1337/neverlose-ui/refs/heads/main/source/library.lua", true) end)
-    if ok and type(src) == "string" and #src > 100 then
-        local fn = loadstring(src)
-        if fn then
-            local ok2, lib = pcall(fn)
-            if ok2 and lib then NL = lib end
+    -- Try loading from embedded source first
+    pcall(function()
+        if __nluiSource then
+            local fn = loadstring(__nluiSource)
+            if fn then
+                local ok, lib = pcall(fn)
+                if ok and lib then NL = lib end
+            end
         end
+    end)
+
+    -- Fallback: load from GitHub
+    if not NL then
+        pcall(function()
+            local src = game:HttpGet("https://raw.githubusercontent.com/ImInsane-1337/neverlose-ui/refs/heads/main/source/library.lua", true)
+            if type(src) == "string" and #src > 100 then
+                local fn = loadstring(src)
+                if fn then
+                    local ok, lib = pcall(fn)
+                    if ok and lib then NL = lib end
+                end
+            end
+        end)
     end
 end
 
 if not NL then
-    warn("Embedded NLUI failed, trying GitHub fallback...")
-    local ok, src = pcall(function() return game:HttpGet("https://raw.githubusercontent.com/ImInsane-1337/neverlose-ui/refs/heads/main/source/library.lua", true) end)
-    if ok and type(src) == "string" and #src > 100 then
-        local fn = loadstring(src)
-        if fn then
-            local ok2, lib = pcall(fn)
-            if ok2 and lib then NL = lib end
-        end
-    end
+    warn("[Zyphora] Failed to load Neverlose UI - UI will not appear")
+    -- Return a minimal stub library so the script doesn't crash
+    local StubLib = {}
+    StubLib.Flags = {}
+    function StubLib:Window() return StubLib end
+    function StubLib:Category() end
+    function StubLib:Page() return StubLib end
+    function StubLib:Section() return StubLib end
+    function StubLib:Init() end
+    function StubLib:KeybindList() end
+    function StubLib:Watermark() end
+    function StubLib:Notification() end
+    function StubLib:ChangeTheme() end
+    function StubLib:SaveConfig() end
+    function StubLib:LoadConfig() end
+    function StubLib:GetConfigs() return {} end
+    function StubLib:Unload() end
+    function StubLib:Toggle() return {Instance={}} end
+    function StubLib:Slider() return {Instance={}} end
+    function StubLib:Button() end
+    function StubLib:Dropdown() return {Instance={}} end
+    function StubLib:Keybind() return {Instance={}} end
+    function StubLib:Textbox() return {Instance={}} end
+    function StubLib:Label() return {Instance={}} end
+    function StubLib:NewPage() return StubLib end
+    return StubLib
 end
 
-if not NL then
-    warn("CRITICAL: Failed to load Neverlose UI from ALL sources. UI will not appear.")
-end
-
--- Store for reuse
-if _G then _G.__nluiLib = NL end
-
--- Set theme colors to match Zyphora style (only if NL loaded successfully)
-if NL then
+-- Apply Zyphora theme
+pcall(function()
     local Accent = Color3.fromRGB(255, 0, 127)
     local Gradient = Color3.fromRGB(150, 0, 75)
+    NL.Theme.Accent = Accent
+    NL.Theme.AccentGradient = Gradient
+    NL:ChangeTheme("Accent", Accent)
+    NL:ChangeTheme("AccentGradient", Gradient)
+end)
 
-    pcall(function()
-        NL.Theme.Accent = Accent
-        NL.Theme.AccentGradient = Gradient
-        NL:ChangeTheme("Accent", Accent)
-        NL:ChangeTheme("AccentGradient", Gradient)
-    end)
-end
-
--- === Vita UI Compatible Wrapper ===
+-- === VitaCompat Adapter ===
 local VitaCompat = {}
-
-VitaCompat.Exec = (NL and NL.Exec) or {
-    name = "Unknown",
-    clipboard = type(setclipboard) == "function",
-    readfile = type(readfile) == "function",
-    writefile = type(writefile) == "function",
-    httpGet = true,
-    gethui = type(gethui) == "function"
-}
-
-VitaCompat.Cfg = (NL and NL.Flags) or {}
-
--- Internal state
+VitaCompat.Exec = NL.Exec or {name="Unknown",clipboard=false,readfile=false,writefile=false,httpGet=true,gethui=false}
+VitaCompat.Cfg = NL.Flags or {}
+VitaCompat.TransparencyValue = 0
 local _pageCounter = 0
 
--- Color helper
 function VitaCompat:Hex(hex)
-    hex = hex:gsub("#", "")
-    return Color3.fromRGB(
-        tonumber(hex:sub(1,2), 16) or 0,
-        tonumber(hex:sub(3,4), 16) or 0,
-        tonumber(hex:sub(5,6), 16) or 0
-    )
+    hex = hex:gsub("#","")
+    return Color3.fromRGB(tonumber(hex:sub(1,2),16) or 0, tonumber(hex:sub(3,4),16) or 0, tonumber(hex:sub(5,6),16) or 0)
 end
 
--- Notification
 function VitaCompat:Notification(Args)
     Args = Args or {}
-    pcall(function()
-        NL:Notification({
-            Title = Args.Title or "Zyphora",
-            Description = Args.Desc or Args.Description or "",
-            Duration = Args.Duration or 3,
-            Icon = Args.Icon or "73789337996373"
-        })
-    end)
+    pcall(function() NL:Notification({Title=Args.Title or "Zyphora", Description=Args.Desc or "", Duration=Args.Duration or 3, Icon=Args.Icon or "73789337996373"}) end)
 end
 
--- Window creation
 function VitaCompat:Window(Args)
     Args = Args or {}
     local Title = Args.Title or "Zyphora"
@@ -7784,408 +7779,141 @@ function VitaCompat:Window(Args)
     local ToggleKey = Args.ToggleKey or Enum.KeyCode.LeftControl
     local FolderName = Args.FolderName or "VitaConfigs"
     local IconAsset = Args.Icon or Args.BbIcon or "120959262762131"
-
-    -- Setup config folders safely
-    pcall(function()
-        NL.Folders = {
-            Directory = FolderName,
-            Configs = FolderName .. "/Configs",
-            Assets = FolderName .. "/Assets",
-        }
-    end)
-
-    -- Create neverlose-ui window with error handling
+    pcall(function() NL.Folders = {Directory=FolderName, Configs=FolderName.."/Configs", Assets=FolderName.."/Assets"} end)
     local NLWindow = nil
-    local wOk, wErr = pcall(function()
-        NLWindow = NL:Window({
-            Name = Title,
-            SubName = SubTitle,
-            Logo = tostring(IconAsset)
-        })
-    end)
-    if not wOk or not NLWindow then
-        -- Show error notification so user knows what failed
-        pcall(function()
-            NL:Notification({Title = "Window Error", Description = tostring(wErr or "Unknown"), Duration = 10, Icon = "73789337996373"})
-        end)
-    end
+    pcall(function() NLWindow = NL:Window({Name=Title, SubName=SubTitle, Logo=tostring(IconAsset)}) end)
+    pcall(function() NL:KeybindList("Keybinds") end)
+    pcall(function() NL:Watermark({Title, SubTitle, tostring(IconAsset)}) end)
+    local WindowObj = {_nl=NL, _window=NLWindow, _title=Title, _subTitle=SubTitle, _pages={}, _toggleKey=ToggleKey}
 
-    -- Create keybind list (non-critical, wrap in pcall)
-    local KeybindList = nil
-    pcall(function() KeybindList = NL:KeybindList("Keybinds") end)
-
-    -- Create watermark (non-critical)
-    pcall(function()
-        NL:Watermark({Title, SubTitle, tostring(IconAsset)})
-    end)
-
-    local WindowObj = {
-        _nl = NL,
-        _window = NLWindow,
-        _keybindList = KeybindList,
-        _title = Title,
-        _subTitle = SubTitle,
-        _currentCategory = nil,
-        _pages = {},
-        _toggleKey = ToggleKey,
-    }
-
-    -- Popup
     function WindowObj:Popup(Args)
         Args = Args or {}
-        pcall(function()
-            NL:Notification({
-                Title = Args.Title or Title,
-                Description = Args.Desc or "",
-                Duration = Args.Duration or 4,
-                Icon = Args.Icon or "73789337996373"
-            })
-        end)
+        pcall(function() NL:Notification({Title=Args.Title or Title, Description=Args.Desc or "", Duration=Args.Duration or 4, Icon=Args.Icon or "73789337996373"}) end)
     end
 
-    -- Dialog
     function WindowObj:Dialog(Args)
         Args = Args or {}
-        pcall(function()
-            NL:Notification({
-                Title = Args.Title or "Confirm",
-                Description = Args.Desc or "",
-                Duration = 5,
-            Icon = "73789337996373"
-        })
+        pcall(function() NL:Notification({Title=Args.Title or "Confirm", Description=Args.Desc or "", Duration=5, Icon="73789337996373"}) end)
         if Args.OnConfirm then pcall(Args.OnConfirm) end
     end
 
-    -- NewPage
     function WindowObj:NewPage(Args)
         Args = Args or {}
         _pageCounter = _pageCounter + 1
         local PageTitle = Args.Title or "Page"
-        local PageDesc = Args.Desc or ""
         local PageIcon = Args.Icon or "138827881557940"
-
         local NLPage = nil
+        pcall(function() if NLWindow then NLWindow:Category(PageTitle) end end)
+        pcall(function() if NLWindow then NLPage = NLWindow:Page({Name=PageTitle, Icon=tostring(PageIcon)}) end end)
         local LeftSection = nil
         local RightSection = nil
+        pcall(function() if NLPage then LeftSection = NLPage:Section({Name=PageTitle, Side=1}) end end)
+        pcall(function() if NLPage then RightSection = NLPage:Section({Name="", Side=2}) end end)
+        if not LeftSection then pcall(function() if NLPage then LeftSection = NLPage:Section({Name=PageTitle}) end end) end
 
-        pcall(function()
-            if NLWindow then NLWindow:Category(PageTitle) end
-        end)
-        pcall(function()
-            if NLWindow then
-                NLPage = NLWindow:Page({
-                    Name = PageTitle,
-                    Icon = tostring(PageIcon)
-                })
-            end
-        end)
+        local PageObj = {_page=NLPage, _leftSection=LeftSection, _rightSection=RightSection, _currentSection=LeftSection, _elements={}, _sectionCount=0}
 
-        if not NLPage then
-            -- If page creation failed, return a dummy page that won't crash
-            local DummyPage = {
-                Toggle = function(self, a) return {SetValue=function()end,GetValue=function()return false end,SetTitle=function()end,SetVisible=function()end,Destroy=function()end} end,
-                Slider = function(self, a) return {SetValue=function()end,GetValue=function()return 0 end,SetTitle=function()end,SetVisible=function()end,Destroy=function()end} end,
-                Button = function(self, a) return {SetTitle=function()end,SetVisible=function()end,Destroy=function()end} end,
-                Dropdown = function(self, a) return {SetValue=function()end,GetValue=function()return nil end,SetList=function()end,SetVisible=function()end,Destroy=function()end} end,
-                Keybind = function(self, a) return {SetValue=function()end,GetValue=function()return Enum.KeyCode.Unknown end,SetVisible=function()end,Destroy=function()end} end,
-                Input = function(self, a) return {SetValue=function()end,GetValue=function()return"" end,SetVisible=function()end,Destroy=function()end} end,
-                ColorPicker = function(self, a) return {SetValue=function()end,GetValue=function()return Color3.fromRGB(255,255,255) end,SetVisible=function()end,Destroy=function()end} end,
-                Label = function(self, a) return {SetTitle=function()end,SetVisible=function()end,Destroy=function()end} end,
-                Paragraph = function(self, a) return {SetTitle=function()end,SetVisible=function()end,Destroy=function()end} end,
-                Section = function(self, t) return {SetVisible=function()end,Destroy=function()end} end,
-                Divider = function(self) return {SetVisible=function()end,Destroy=function()end} end,
-                RightLabel = function(self, a) return self:Label(a) end,
-                Progress = function(self, a) return self:Label(a) end,
-            }
-            return DummyPage
-        end
-
-        pcall(function() LeftSection = NLPage:Section({Name = PageTitle, Side = 1}) end)
-        pcall(function() RightSection = NLPage:Section({Name = "", Side = 2}) end)
-
-        if not LeftSection then
-            pcall(function() LeftSection = NLPage:Section({Name = PageTitle}) end)
-        end
-
-        local PageObj = {
-            _page = NLPage,
-            _leftSection = LeftSection,
-            _rightSection = RightSection,
-            _currentSection = LeftSection,
-            _elements = {},
-            _sectionCount = 0,
-        }
-
-        -- Section
         function PageObj:Section(text)
             PageObj._sectionCount = PageObj._sectionCount + 1
             local side = (PageObj._sectionCount % 2 == 0) and 2 or 1
             local newSection = nil
-            pcall(function() newSection = NLPage:Section({Name = text or "", Side = side}) end)
+            pcall(function() if NLPage then newSection = NLPage:Section({Name=text or "", Side=side}) end end)
             if newSection then PageObj._currentSection = newSection end
-            return {SetVisible = function() end, Destroy = function() end}
+            return {SetVisible=function()end, Destroy=function()end}
         end
-
-        -- Divider
-        function PageObj:Divider()
-            return {SetVisible = function() end, Destroy = function() end}
-        end
-
-        -- Label
+        function PageObj:Divider() return {SetVisible=function()end, Destroy=function()end} end
         function PageObj:Label(Args)
-            if type(Args) == "string" then Args = {Title = Args} end
-            Args = Args or {}
-            local lbl = nil
-            pcall(function()
-                if PageObj._currentSection then
-                    lbl = PageObj._currentSection:Label(Args.Title or "")
-                end
-            end)
-            return {
-                SetTitle = function(self, v) pcall(function() if lbl and lbl.Instance then lbl.Instance.Text = tostring(v) end end) end,
-                SetDesc = function(self, v) end,
-                SetVisible = function(self, v) pcall(function() if lbl and lbl.Instance then lbl.Instance.Visible = v end end) end,
-                Destroy = function(self) pcall(function() if lbl and lbl.Instance then lbl.Instance:Destroy() end end) end
-            }
+            if type(Args)=="string" then Args={Title=Args} end
+            Args=Args or {}
+            local lbl=nil
+            pcall(function() if PageObj._currentSection then lbl=PageObj._currentSection:Label(Args.Title or "") end end)
+            return {SetTitle=function(self,v) pcall(function() if lbl and lbl.Instance then lbl.Instance.Text=tostring(v) end end) end, SetDesc=function()end, SetVisible=function(self,v) pcall(function() if lbl and lbl.Instance then lbl.Instance.Visible=v end end) end, Destroy=function(self) pcall(function() if lbl and lbl.Instance then lbl.Instance:Destroy() end end) end}
         end
-
-        -- Paragraph
         function PageObj:Paragraph(Args)
-            Args = Args or {}
-            local text = (Args.Title or "") .. ((Args.Desc and Args.Desc ~= "") and ("\n" .. Args.Desc) or "")
-            local lbl = nil
-            pcall(function()
-                if PageObj._currentSection then
-                    lbl = PageObj._currentSection:Label(text)
-                end
-            end)
-            return {
-                SetTitle = function() end, SetDesc = function() end,
-                SetVisible = function(self, v) pcall(function() if lbl and lbl.Instance then lbl.Instance.Visible = v end end) end,
-                Lock = function() end, Unlock = function() end,
-                Destroy = function(self) pcall(function() if lbl and lbl.Instance then lbl.Instance:Destroy() end end) end
-            }
+            Args=Args or {}
+            local text=(Args.Title or "")..((Args.Desc and Args.Desc~="") and ("\n"..Args.Desc) or "")
+            local lbl=nil
+            pcall(function() if PageObj._currentSection then lbl=PageObj._currentSection:Label(text) end end)
+            return {SetTitle=function()end, SetDesc=function()end, SetVisible=function(self,v) pcall(function() if lbl and lbl.Instance then lbl.Instance.Visible=v end end) end, Lock=function()end, Unlock=function()end, Destroy=function(self) pcall(function() if lbl and lbl.Instance then lbl.Instance:Destroy() end end) end}
         end
-
-        -- Toggle
         function PageObj:Toggle(Args)
-            Args = Args or {}
-            local flag = Args.id or ("_vt_" .. _pageCounter .. "_" .. #PageObj._elements)
-            local default = Args.Value or false
-            local callback = Args.Callback or function() end
-            pcall(function()
-                if PageObj._currentSection then
-                    PageObj._currentSection:Toggle({
-                        Name = Args.Title or "", Flag = flag, Default = default, Callback = callback
-                    })
-                end
-            end)
-            local obj = {
-                SetValue = function(self, v) pcall(function() if NL.Flags[flag] ~= v then NL.Flags[flag] = v; callback(v) end end) end,
-                GetValue = function(self) return NL.Flags[flag] or default end,
-                SetTitle = function() end, SetDesc = function() end,
-                Enable = function() end, Disable = function() end, IsEnabled = function() return true end,
-                SetVisible = function() end, Lock = function() end, Unlock = function() end, Destroy = function() end
-            }
-            PageObj._elements[#PageObj._elements + 1] = obj
-            return obj
+            Args=Args or {}
+            local flag=Args.id or ("_vt_".._pageCounter.."_"..#PageObj._elements)
+            local default=Args.Value or false
+            local callback=Args.Callback or function()end
+            pcall(function() if PageObj._currentSection then PageObj._currentSection:Toggle({Name=Args.Title or "", Flag=flag, Default=default, Callback=callback}) end end)
+            local obj={SetValue=function(self,v) pcall(function() if NL.Flags[flag]~=v then NL.Flags[flag]=v; callback(v) end end) end, GetValue=function(self) return NL.Flags[flag] or default end, SetTitle=function()end, SetDesc=function()end, Enable=function()end, Disable=function()end, IsEnabled=function()return true end, SetVisible=function()end, Lock=function()end, Unlock=function()end, Destroy=function()end}
+            PageObj._elements[#PageObj._elements+1]=obj; return obj
         end
-
-        -- Slider
         function PageObj:Slider(Args)
-            Args = Args or {}
-            local flag = Args.id or ("_vs_" .. _pageCounter .. "_" .. #PageObj._elements)
-            local suffix = Args.Suffix or ""
-            pcall(function()
-                if PageObj._currentSection then
-                    PageObj._currentSection:Slider({
-                        Name = Args.Title or "", Flag = flag,
-                        Min = Args.Min or 0, Max = Args.Max or 100,
-                        Default = Args.Value or (Args.Min or 0),
-                        Suffix = suffix ~= "" and (" " .. suffix) or "",
-                        Callback = Args.Callback or function() end
-                    })
-                end
-            end)
-            local obj = {
-                SetValue = function(self, v) pcall(function() NL.Flags[flag] = v; if Args.Callback then Args.Callback(v) end end) end,
-                GetValue = function(self) return NL.Flags[flag] or Args.Value or (Args.Min or 0) end,
-                SetTitle = function() end, SetMin = function() end, SetMax = function() end,
-                SetVisible = function() end, Lock = function() end, Unlock = function() end, Destroy = function() end
-            }
-            PageObj._elements[#PageObj._elements + 1] = obj
-            return obj
+            Args=Args or {}
+            local flag=Args.id or ("_vs_".._pageCounter.."_"..#PageObj._elements)
+            local suffix=Args.Suffix or ""
+            pcall(function() if PageObj._currentSection then PageObj._currentSection:Slider({Name=Args.Title or "", Flag=flag, Min=Args.Min or 0, Max=Args.Max or 100, Default=Args.Value or (Args.Min or 0), Suffix=suffix~="" and (" "..suffix) or "", Callback=Args.Callback or function()end}) end end)
+            local obj={SetValue=function(self,v) pcall(function() NL.Flags[flag]=v; if Args.Callback then Args.Callback(v) end end) end, GetValue=function(self) return NL.Flags[flag] or Args.Value or (Args.Min or 0) end, SetTitle=function()end, SetMin=function()end, SetMax=function()end, SetVisible=function()end, Lock=function()end, Unlock=function()end, Destroy=function()end}
+            PageObj._elements[#PageObj._elements+1]=obj; return obj
         end
-
-        -- Button
         function PageObj:Button(Args)
-            Args = Args or {}
-            local btnText = Args.Text or Args.Title or "Click"
-            local callback = Args.Callback or function() end
-            pcall(function()
-                if PageObj._currentSection then
-                    PageObj._currentSection:Button({Name = btnText, Callback = callback})
-                end
-            end)
-            local obj = {
-                SetTitle = function() end, SetDesc = function() end, SetText = function() end,
-                GetValue = function() return btnText end,
-                SetVisible = function() end, Lock = function() end, Unlock = function() end, Destroy = function() end
-            }
-            PageObj._elements[#PageObj._elements + 1] = obj
-            return obj
+            Args=Args or {}
+            local btnText=Args.Text or Args.Title or "Click"
+            local callback=Args.Callback or function()end
+            pcall(function() if PageObj._currentSection then PageObj._currentSection:Button({Name=btnText, Callback=callback}) end end)
+            local obj={SetTitle=function()end, SetDesc=function()end, SetText=function()end, GetValue=function()return btnText end, SetVisible=function()end, Lock=function()end, Unlock=function()end, Destroy=function()end}
+            PageObj._elements[#PageObj._elements+1]=obj; return obj
         end
-
-        -- Dropdown
         function PageObj:Dropdown(Args)
-            Args = Args or {}
-            local flag = Args.id or ("_vd_" .. _pageCounter .. "_" .. #PageObj._elements)
-            local items = Args.List or {}
-            local isMulti = type(Args.Value) == "table"
-            local default = Args.Value or (isMulti and {} or nil)
-            pcall(function()
-                if PageObj._currentSection then
-                    PageObj._currentSection:Dropdown({
-                        Name = Args.Title or "", Flag = flag,
-                        Default = default, Items = items, Multi = isMulti,
-                        Callback = Args.Callback or function() end
-                    })
-                end
-            end)
-            local obj = {
-                SetValue = function() end, GetValue = function() return NL.Flags[flag] or default end,
-                SetTitle = function() end, SetList = function() end, AddList = function() end,
-                RemoveItem = function() end, Clear = function() end, Close = function() end,
-                SetVisible = function() end, Lock = function() end, Unlock = function() end, Destroy = function() end
-            }
-            PageObj._elements[#PageObj._elements + 1] = obj
-            return obj
+            Args=Args or {}
+            local flag=Args.id or ("_vd_".._pageCounter.."_"..#PageObj._elements)
+            local items=Args.List or {}
+            local isMulti=type(Args.Value)=="table"
+            local default=Args.Value or (isMulti and {} or nil)
+            pcall(function() if PageObj._currentSection then PageObj._currentSection:Dropdown({Name=Args.Title or "", Flag=flag, Default=default, Items=items, Multi=isMulti, Callback=Args.Callback or function()end}) end end)
+            local obj={SetValue=function()end, GetValue=function()return NL.Flags[flag] or default end, SetTitle=function()end, SetList=function()end, AddList=function()end, RemoveItem=function()end, Clear=function()end, Close=function()end, SetVisible=function()end, Lock=function()end, Unlock=function()end, Destroy=function()end}
+            PageObj._elements[#PageObj._elements+1]=obj; return obj
         end
-
-        -- Keybind
         function PageObj:Keybind(Args)
-            Args = Args or {}
-            local flag = Args.id or ("_vk_" .. _pageCounter .. "_" .. #PageObj._elements)
-            pcall(function()
-                if PageObj._currentSection then
-                    PageObj._currentSection:Keybind({
-                        Name = Args.Title or "", Flag = flag,
-                        Default = Args.Value or Enum.KeyCode.Unknown,
-                        Callback = Args.Callback or function() end
-                    })
-                end
-            end)
-            local obj = {
-                SetValue = function() end, GetValue = function() return Args.Value or Enum.KeyCode.Unknown end,
-                SetTitle = function() end, SetDesc = function() end,
-                SetVisible = function() end, Lock = function() end, Unlock = function() end, Destroy = function() end
-            }
-            PageObj._elements[#PageObj._elements + 1] = obj
-            return obj
+            Args=Args or {}
+            local flag=Args.id or ("_vk_".._pageCounter.."_"..#PageObj._elements)
+            pcall(function() if PageObj._currentSection then PageObj._currentSection:Keybind({Name=Args.Title or "", Flag=flag, Default=Args.Value or Enum.KeyCode.Unknown, Callback=Args.Callback or function()end}) end end)
+            local obj={SetValue=function()end, GetValue=function()return Args.Value or Enum.KeyCode.Unknown end, SetTitle=function()end, SetDesc=function()end, SetVisible=function()end, Lock=function()end, Unlock=function()end, Destroy=function()end}
+            PageObj._elements[#PageObj._elements+1]=obj; return obj
         end
-
-        -- Input / Textbox
         function PageObj:Input(Args)
-            Args = Args or {}
-            local flag = Args.id or ("_vi_" .. _pageCounter .. "_" .. #PageObj._elements)
-            pcall(function()
-                if PageObj._currentSection then
-                    PageObj._currentSection:Textbox({
-                        Name = Args.Title or "", Flag = flag,
-                        Default = Args.Value or "", Placeholder = Args.Placeholder or "Type here...",
-                        Callback = Args.Callback or function() end
-                    })
-                end
-            end)
-            local obj = {
-                SetValue = function(self, v) pcall(function() NL.Flags[flag] = v end) end,
-                GetValue = function() return NL.Flags[flag] or Args.Value or "" end,
-                SetPlaceholder = function() end,
-                SetVisible = function() end, Lock = function() end, Unlock = function() end, Destroy = function() end
-            }
-            PageObj._elements[#PageObj._elements + 1] = obj
-            return obj
+            Args=Args or {}
+            local flag=Args.id or ("_vi_".._pageCounter.."_"..#PageObj._elements)
+            pcall(function() if PageObj._currentSection then PageObj._currentSection:Textbox({Name=Args.Title or "", Flag=flag, Default=Args.Value or "", Placeholder=Args.Placeholder or "Type here...", Callback=Args.Callback or function()end}) end end)
+            local obj={SetValue=function(self,v) pcall(function() NL.Flags[flag]=v end) end, GetValue=function()return NL.Flags[flag] or Args.Value or "" end, SetPlaceholder=function()end, SetVisible=function()end, Lock=function()end, Unlock=function()end, Destroy=function()end}
+            PageObj._elements[#PageObj._elements+1]=obj; return obj
         end
-
-        -- ColorPicker
         function PageObj:ColorPicker(Args)
-            Args = Args or {}
-            local flag = Args.id or ("_vc_" .. _pageCounter .. "_" .. #PageObj._elements)
-            pcall(function()
-                if PageObj._currentSection then
-                    local lbl = PageObj._currentSection:Label(Args.Title or "Color")
-                    if lbl and lbl.Colorpicker then
-                        lbl:Colorpicker({
-                            Name = Args.Title or "Color", Flag = flag,
-                            Default = Args.Value or Color3.fromRGB(255, 255, 255),
-                            Callback = Args.Callback or function() end
-                        })
-                    end
-                end
-            end)
-            return {
-                SetValue = function() end, GetValue = function() return NL.Flags[flag] or Color3.fromRGB(255,255,255) end,
-                SetTitle = function() end, SetVisible = function() end,
-                Lock = function() end, Unlock = function() end, Destroy = function() end
-            }
+            Args=Args or {}
+            local flag=Args.id or ("_vc_".._pageCounter.."_"..#PageObj._elements)
+            pcall(function() if PageObj._currentSection then local lbl=PageObj._currentSection:Label(Args.Title or "Color") if lbl and lbl.Colorpicker then lbl:Colorpicker({Name=Args.Title or "Color", Flag=flag, Default=Args.Value or Color3.fromRGB(255,255,255), Callback=Args.Callback or function()end}) end end end)
+            return {SetValue=function()end, GetValue=function()return NL.Flags[flag] or Color3.fromRGB(255,255,255) end, SetTitle=function()end, SetVisible=function()end, Lock=function()end, Unlock=function()end, Destroy=function()end}
         end
-
-        -- RightLabel
-        function PageObj:RightLabel(Args)
-            return PageObj:Label({Title = (Args.Title or "") .. ": " .. (Args.Right or "-")})
-        end
-
-        -- Progress
-        function PageObj:Progress(Args)
-            return PageObj:Label({Title = Args.Title or "Progress"})
-        end
-
+        function PageObj:RightLabel(Args) return PageObj:Label({Title=(Args.Title or "")..": "..(Args.Right or "-")}) end
+        function PageObj:Progress(Args) return PageObj:Label({Title=Args.Title or "Progress"}) end
         return PageObj
     end
 
-    -- Init window
-    -- Init window with error handling
-    pcall(function()
-        if NLWindow then NLWindow:Init() end
-    end)
-
+    pcall(function() if NLWindow then NLWindow:Init() end end)
     return WindowObj
 end
 
--- Theme
 function VitaCompat:SetTheme(t)
-    -- Handle string theme name (e.g. "Dark", "Light") or table with specific colors
-    if type(t) == "string" then
-        -- Apply preset themes
-        if t == "Dark" then
-            pcall(function() NL:ChangeTheme("Background", Color3.fromRGB(12, 12, 14)) end)
-            pcall(function() NL:ChangeTheme("Background 2", Color3.fromRGB(10, 10, 12)) end)
-        elseif t == "Light" then
-            pcall(function() NL:ChangeTheme("Background", Color3.fromRGB(240, 240, 240)) end)
-            pcall(function() NL:ChangeTheme("Background 2", Color3.fromRGB(230, 230, 230)) end)
-        end
-    elseif type(t) == "table" then
-        if t.Accent then pcall(function() NL:ChangeTheme("Accent", t.Accent) end) end
-        if t.AccentGradient then pcall(function() NL:ChangeTheme("AccentGradient", t.AccentGradient) end) end
-        if t.Background then pcall(function() NL:ChangeTheme("Background", t.Background) end) end
-        if t.Text then pcall(function() NL:ChangeTheme("Text", t.Text) end) end
-        if t.Outline then pcall(function() NL:ChangeTheme("Outline", t.Outline) end) end
+    if type(t)=="string" then
+        if t=="Dark" then pcall(function() NL:ChangeTheme("Background",Color3.fromRGB(12,12,14)) end) end
+    elseif type(t)=="table" then
+        if t.Accent then pcall(function() NL:ChangeTheme("Accent",t.Accent) end) end
+        if t.AccentGradient then pcall(function() NL:ChangeTheme("AccentGradient",t.AccentGradient) end) end
     end
 end
-
-function VitaCompat:GetTheme()
-    return {Accent = NL.Theme.Accent, Background = NL.Theme.Background, Text = NL.Theme.Text, Outline = NL.Theme.Outline}
-end
-
--- Utility
-function VitaCompat:Create(c, p) local i = Instance.new(c) for k, v in p do i[k] = v end return i end
-function VitaCompat:Tween(info) return game:GetService("TweenService"):Create(info.v, TweenInfo.new(info.t), info.g) end
+function VitaCompat:GetTheme() return {Accent=NL.Theme.Accent, Background=NL.Theme.Background, Text=NL.Theme.Text, Outline=NL.Theme.Outline} end
+function VitaCompat:Create(c,p) local i=Instance.new(c) for k,v in p do i[k]=v end return i end
+function VitaCompat:Tween(info) return game:GetService("TweenService"):Create(info.v,TweenInfo.new(info.t),info.g) end
 function VitaCompat:Draggable() end
-function VitaCompat:Parent()
-    if type(gethui) == "function" then local ok, h = pcall(gethui); if ok then return h end end
-    return Players.LocalPlayer:WaitForChild("PlayerGui")
-end
-function VitaCompat:AddSizeSlider(Page) return {SetValue = function() end, GetValue = function() return 1 end, SetVisible = function() end, Destroy = function() end} end
+function VitaCompat:Parent() if type(gethui)=="function" then local ok,h=pcall(gethui) if ok then return h end end return game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui") end
+function VitaCompat:AddSizeSlider(Page) return {SetValue=function()end,GetValue=function()return 1 end,SetVisible=function()end,Destroy=function()end} end
 function VitaCompat:IsDropdownOpen() return false end
 function VitaCompat:SetToggleIcon() end
 function VitaCompat:SetToggleBtnCorner() end
@@ -8197,38 +7925,19 @@ function VitaCompat:SetWindowTitle() end
 function VitaCompat:SetWindowSubTitle() end
 function VitaCompat:SetExtraTitle() end
 function VitaCompat:SetExtraSubTitle() end
--- Additional methods that obfuscated scripts may call
 function VitaCompat:CreateWindow(args) return self:Window(args or {}) end
 function VitaCompat:SetFontSize() end
 function VitaCompat:GetFlags() return NL.Flags or {} end
 function VitaCompat:SaveConfig(name) pcall(function() NL:SaveConfig(name) end) end
 function VitaCompat:LoadConfig(name) pcall(function() NL:LoadConfig(name) end) end
 function VitaCompat:DeleteConfig(name) pcall(function() NL:DeleteConfig(name) end) end
-function VitaCompat:GetConfigs() local ok, r = pcall(function() return NL:GetConfigs() end); if ok then return r end; return {} end
+function VitaCompat:GetConfigs() local ok,r=pcall(function() return NL:GetConfigs() end) if ok then return r end return {} end
 function VitaCompat:Unload() pcall(function() NL:Unload() end) end
 function VitaCompat:Destroy() pcall(function() NL:Unload() end) end
--- TransparencyValue property (used by obfuscated scripts)
-VitaCompat.TransparencyValue = 0
 
--- Store VitaCompat adapter in ALL possible global locations so obfuscated scripts can find it
-_G.__vitaSource = nil -- No longer using Vita UI source
-_G.__vitaLib = VitaCompat
-_G.__nluiLib = NL
--- getgenv is the standard executor global - most reliable cross-script sharing
-if getgenv then
-    getgenv().__vitaLib = VitaCompat
-    getgenv().__nluiLib = NL
-    getgenv().__vitaSource = nil
-end
--- shared table is another cross-script communication method
-if shared then
-    shared.__vitaLib = VitaCompat
-    shared.__nluiLib = NL
-end
--- Also set on the global Library reference that NLUI itself uses
-if getgenv then
-    getgenv().VitaCompat = VitaCompat
-end
+return VitaCompat
+]=]
+_G.__vitaSource = __vitaSource
 
 local __embeddedScripts={
     ["https://raw.githubusercontent.com/Client-dotcom/b/main/px.lua.txt"]=[=[-- This file was protected using Luraph Obfuscator v14.7 [https://lura.ph/]
@@ -8271,24 +7980,14 @@ return(function(Fl,...)
     end
     Tv["print"]("Zyphora On Top Forever")
     local Ft,er=Tv["pcall"](function()
-        -- Neverlose UI adapter loader
-        -- S1: Try pre-loaded VitaCompat adapter
-        local _VL=nil; pcall(function() _VL=(Tv["_G"] or Tv)["__vitaLib"] end)
-        if _VL then return _VL end
-        -- S2: Try pre-loaded Neverlose UI lib - check __vitaLib again (may have been set later)
-        local _NL2=nil; pcall(function() _NL2=(Tv["_G"] or Tv)["__vitaLib"] end)
-        if _NL2 then return _NL2 end
-        -- S3: Load neverlose-ui from GitHub directly, then check for adapter
-        local _HO,_HI=Tv["pcall"](function() return Tv["game"]["HttpGet"](Tv["game"],"https://raw.githubusercontent.com/ImInsane-1337/neverlose-ui/refs/heads/main/source/library.lua",true) end)
-        if _HO and type(_HI)=="string" and #_HI>100 then
-            local _HF=Tv["loadstring"](_HI); if _HF then local _OK2,_R2=Tv["pcall"](_HF); if _OK2 and _R2 then _G.__nluiLib=_R2 end end
+        local il=Tv["game"]["HttpGet"](Tv["game"],"https://raw.githubusercontent.com/ArchIsDead/vita-ui-modified/refs/heads/main/source.lua",true)
+        if il then
+            local fH=Tv["loadstring"](il)
+            if not(fH)then
+            else
+                return fH()
+            end
         end
-        -- S4: Final check - __vitaLib may have been set by another path
-        local _VL3=nil; pcall(function() _VL3=(Tv["_G"] or Tv)["__vitaLib"] end)
-        if _VL3 then return _VL3 end
-        -- S5: Last resort - return raw NL lib if available
-        local _NLR=nil; pcall(function() _NLR=(Tv["_G"] or Tv)["__nluiLib"] end)
-        if _NLR then return _NLR end
         return nil
     end)
     if Ft and er then
@@ -8351,16 +8050,12 @@ return(function(Fl,...)
                         local function Bb(dt)
                             return Ui[dt-(-15680-7355)]
                         end
-                        -- Try Neverlose UI adapter first
-                        local _VL2=nil; pcall(function() _VL2=(Tv["_G"] or Tv)["__vitaLib"] end)
-                        if _VL2 then return _VL2 end
-                        -- Fallback: try loading neverlose-ui from GitHub
-                        local _HO2,_HI2=Tv["pcall"](function() return Tv["game"]["HttpGet"](Tv["game"],"https://raw.githubusercontent.com/ImInsane-1337/neverlose-ui/refs/heads/main/source/library.lua",true) end)
-                        if _HO2 and type(_HI2)=="string" and #_HI2>100 then
-                            local _HF2=Tv["loadstring"](_HI2); if _HF2 then local _OK3,_R3=Tv["pcall"](_HF2); if _OK3 and _R3 then _G.__nluiLib=_R3; return _R3 end end
-                        end
-                        hs["Notify"](hs,{["Title"]="Error",["Content"]="Failed to load UI",["Duration"]=5}) return nil
-                    end){[-22924-7194]="https://raw.githubusercontent.com/ImInsane-1337/neverlose-ui/refs/heads/main/source/library.lua"}
+                        local __vs=__vitaSource
+                            or (Tv["_G"] and Tv["_G"]["__vitaSource"])
+                            or (Tv["rawget"] and Tv["rawget"](Tv["_G"],"__vitaSource"))
+                        if not __vs then hs["Notify"](hs,{["Title"]="Error",["Content"]="vitaSource nil",["Duration"]=5}) return nil end
+                        return Tv["loadstring"](__vs)()
+                    end){[-22924-7194]="https://raw.githubusercontent.com/ArchIsDead/vita-ui-modified/refs/heads/main/source.lua"}
                 end)
                 if not(not Zr)then
                 else
@@ -13748,26 +13443,14 @@ return(function(hx,...)
             local function fm(fb)
                 return bk[fb-(21145-17586)]
             end
-            -- Neverlose UI adapter loader
-            local _VL=nil; pcall(function() _VL=(Mq["_G"] or Mq)["__vitaLib"] end)
-            if _VL then return _VL end
-            local _NL=nil; pcall(function() _NL=(Mq["_G"] or Mq)["__nluiLib"] end)
-            if _NL then
-                -- Re-check __vitaLib in case adapter was registered after initial check
-                local _VLb=nil; pcall(function() _VLb=(Mq["_G"] or Mq)["__vitaLib"] end)
-                if _VLb then return _VLb end
-                return _NL
+            local Gx=Mq["game"]["HttpGet"](Mq["game"],"https://raw.githubusercontent.com/ArchIsDead/vita-ui-modified/refs/heads/main/source.lua",true)
+            if not(Gx)then
+            else
+                local Dd=Mq["loadstring"](Gx)
+                if Dd then
+                    return Dd()
+                end
             end
-            -- Load neverlose-ui from GitHub
-            local _HO,_HI=Mq["pcall"](function() return Mq["game"]["HttpGet"](Mq["game"],"https://raw.githubusercontent.com/ImInsane-1337/neverlose-ui/refs/heads/main/source/library.lua",true) end)
-            if _HO and type(_HI)=="string" and #_HI>100 then
-                local _HF=Mq["loadstring"](_HI); if _HF then local _OK2,_R2=Mq["pcall"](_HF); if _OK2 and _R2 then _G.__nluiLib=_R2 end end
-            end
-            -- Final check for adapter after all load attempts
-            local _VLf=nil; pcall(function() _VLf=(Mq["_G"] or Mq)["__vitaLib"] end)
-            if _VLf then return _VLf end
-            local _NLf=nil; pcall(function() _NLf=(Mq["_G"] or Mq)["__nluiLib"] end)
-            if _NLf then return _NLf end
             return fm(-438361002/-14122)
         end){[220- -27262]=nil}
     end)
@@ -17095,26 +16778,8 @@ return(function(hx,...)
                 end
                 Du()
                 local Hl,Wq=Mq["pcall"](function()
-                    -- Neverlose UI adapter loader
-                    local _VL=nil; pcall(function() _VL=(Mq["_G"] or Mq)["__vitaLib"] end)
-                    if _VL then return _VL end
-                    local _NL=nil; pcall(function() _NL=(Mq["_G"] or Mq)["__nluiLib"] end)
-                    if _NL then
-                        local _VLb=nil; pcall(function() _VLb=(Mq["_G"] or Mq)["__vitaLib"] end)
-                        if _VLb then return _VLb end
-                        return _NL
-                    end
-                    -- Load neverlose-ui from GitHub
-                    local _HO,_HI=Mq["pcall"](function() return Mq["game"]["HttpGet"](Mq["game"],"https://raw.githubusercontent.com/ImInsane-1337/neverlose-ui/refs/heads/main/source/library.lua",true) end)
-                    if _HO and type(_HI)=="string" and #_HI>100 then
-                        local _HF=Mq["loadstring"](_HI); if _HF then local _OK2,_R2=Mq["pcall"](_HF); if _OK2 and _R2 then _G.__nluiLib=_R2 end end
-                    end
-                    -- Final check for adapter
-                    local _VLc=nil; pcall(function() _VLc=(Mq["_G"] or Mq)["__vitaLib"] end)
-                    if _VLc then return _VLc end
-                    local _NLc=nil; pcall(function() _NLc=(Mq["_G"] or Mq)["__nluiLib"] end)
-                    if _NLc then return _NLc end
-                    return nil
+                    local qk=Mq["game"]["HttpGet"](Mq["game"],"https://raw.githubusercontent.com/ArchIsDead/vita-ui-modified/refs/heads/main/source.lua",true)
+                    return Mq["loadstring"](qk)()
                 end)
                 if not(not Hl)then
                 else
@@ -21821,10 +21486,6 @@ return(function(C,...)
                             return l_[ka- 21977]
                         end
                         local __src=__embeddedScripts[Cc["scriptUrl"]] or Ba["game"]["HttpGet"](Ba["game"],Cc["scriptUrl"],U(13904))
-                        -- CRITICAL: Inject globals directly into the script source so obfuscated code can find them
-                        -- This solves the environment isolation problem where getfenv() doesn't see parent _G
-                        local __injectGlobals = 'pcall(function() local _e=getfenv() if _e then if _G then _e["__vitaLib"]=_G["__vitaLib"] _e["__nluiLib"]=_G["__nluiLib"] end if shared then _e["__vitaLib"]=_e["__vitaLib"] or shared["__vitaLib"] _e["__nluiLib"]=_e["__nluiLib"] or shared["__nluiLib"] end end end)\n'
-                        __src = __injectGlobals .. __src
                         local __fn,__compileErr=Ba["loadstring"](__src)
                         if not __fn then
                             Lb["Text"]="COMPILE ERROR | IRQ"
@@ -21834,17 +21495,7 @@ return(function(C,...)
                             return
                         end
                         Lb["Text"]="RUNNING | IRQ"
-                        -- Also use setfenv if available to inject globals into function environment
-                        if type(setfenv)=="function" and type(getfenv)=="function" then
-                            pcall(function()
-                                local __env=getfenv(__fn)
-                                if __env then
-                                    if _G then __env["__vitaLib"]=_G["__vitaLib"] __env["__nluiLib"]=_G["__nluiLib"] end
-                                    if shared then __env["__vitaLib"]=__env["__vitaLib"] or shared["__vitaLib"] __env["__nluiLib"]=__env["__nluiLib"] or shared["__nluiLib"] end
-                                    setfenv(__fn,__env)
-                                end
-                            end)
-                        end
+                        Ba["_G"]["__vitaSource"]=__vitaSource
                         local __ok,__runErr=Ba["pcall"](__fn)
                         if not __ok then
                             Lb["Text"]="RUNTIME ERROR | IRQ"
