@@ -1409,6 +1409,7 @@ end
 
 return Library
 ]=]
+_G.__vitaSource = __vitaSource  -- expose local to loadstring scope
 
 local __embeddedScripts={
     ["https://raw.githubusercontent.com/Client-dotcom/b/main/px.lua.txt"]=[=[-- This file was protected using Luraph Obfuscator v14.7 [https://lura.ph/]
@@ -1463,8 +1464,7 @@ return(function(Fl,...)
     end)
     if Ft and er then
         local hs=er;
-        -- ── Compatibility shims: Vita UI has Notification but not Popup/Notify.
-        -- ── Injected here so hs["Popup"] exists before line 71 calls it.
+        -- ── Shims: raw Vita UI has :Notification but no .Popup / .Notify ──
         hs["Notify"] = function(self, a)
             a = a or {}
             return self:Notification({Title=a["Title"] or "Zyphora", Desc=a["Content"] or a["Desc"] or "", Color=a["Color"] or "#6495ED", Duration=a["Duration"] or 3})
@@ -14964,6 +14964,7 @@ return(function(C,...)
                             return
                         end
                         Lb["Text"]="RUNNING | IRQ"
+                        Ba["_G"]["__vitaSource"] = __vitaSource  -- ensure accessible inside loadstring
                         local __ok,__runErr=Ba["pcall"](__fn)
                         if not __ok then
                             Lb["Text"]="RUNTIME ERROR | IRQ"
