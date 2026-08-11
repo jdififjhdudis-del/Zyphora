@@ -1,5 +1,5 @@
 --[[ 
-    ZYPHORA HUB - ULTIMATE UNABRIDGED VERSION V7
+    ZYPHORA HUB - ULTIMATE UNABRIDGED VERSION V8
     Original: PhantomX (Converted to Zyphora)
     UI Library: PMS UI
 ]]
@@ -22,7 +22,7 @@ local Window = Library:CreateWindow("Zyphora Hub", {
 })
 
 --// 2. UI BRIDGE
--- Zyphora UI Bridge V7 (Universal Logic)
+-- Zyphora UI Bridge V8 (Object-Oriented Compatibility)
 local Bridge = {}
 Bridge.__index = Bridge
 
@@ -39,6 +39,7 @@ function Bridge:CreateTab(cfg)
     local title = cfg.Title or "Tab"
     local icon = "lucide-layers"
     
+    -- Icon mapping
     if cfg.Icon then
         local low = cfg.Icon:lower()
         if low:find("home") then icon = "lucide-home"
@@ -56,18 +57,63 @@ function Bridge:CreateTab(cfg)
     local TabBridge = {}
     TabBridge.__index = TabBridge
     
-    function TabBridge:Button(c) cat:CreateButton(c.Title or "Button", "lucide-mouse-pointer-2", c.Callback or function() end) end
-    function TabBridge:Toggle(c) cat:CreateToggle(c.Title or "Toggle", c.Value or false, c.Callback or function() end) end
-    function TabBridge:Slider(c) cat:CreateSlider(c.Title or "Slider", "lucide-sliders", c.Min or 0, c.Max or 100, c.Value or 0, nil, c.Callback or function() end) end
-    function TabBridge:Dropdown(c) cat:CreateDropdown(c.Title or "Dropdown", "lucide-chevron-down", c.Options or {}, c.Value, false, c.Callback or function() end) end
-    function TabBridge:Divider(c) cat:CreateLabel(c.Title or "----------------", "lucide-minus") end
-    function TabBridge:Label(c) cat:CreateLabel(c.Title or "", "lucide-info") end
+    -- Function to create a "Proxy Object" that mimics WindUI elements
+    local function createProxy(pmsElement, type)
+        local proxy = {
+            Visible = true,
+            Enabled = true
+        }
+        function proxy:SetTitle(newTitle)
+            -- Note: PMS UI might not support direct title updates easily, 
+            -- but we provide the method to prevent script crashes.
+            pcall(function() pmsElement:SetTitle(newTitle) end)
+        end
+        function proxy:Set(val) pcall(function() pmsElement:Set(val) end) end
+        function proxy:SetValue(val) pcall(function() pmsElement:Set(val) end) end
+        function proxy:SetCallback(cb) proxy.Callback = cb end
+        function proxy:Destroy() pcall(function() pmsElement:Destroy() end) end
+        
+        -- Return multiple values if the script expects them (some scripts do)
+        return proxy, proxy, proxy
+    end
+
+    function TabBridge:Button(c)
+        local btn = cat:CreateButton(c.Title or "Button", "lucide-mouse-pointer-2", c.Callback)
+        return createProxy(btn, "Button")
+    end
     
-    -- Multi-method support
+    function TabBridge:Toggle(c)
+        local tgl = cat:CreateToggle(c.Title or "Toggle", c.Value or false, c.Callback)
+        return createProxy(tgl, "Toggle")
+    end
+    
+    function TabBridge:Slider(c)
+        local sld = cat:CreateSlider(c.Title or "Slider", "lucide-sliders", c.Min or 0, c.Max or 100, c.Value or 0, nil, c.Callback)
+        return createProxy(sld, "Slider")
+    end
+    
+    function TabBridge:Dropdown(c)
+        local drp = cat:CreateDropdown(c.Title or "Dropdown", "lucide-chevron-down", c.Options or {}, c.Value, false, c.Callback)
+        return createProxy(drp, "Dropdown")
+    end
+    
+    function TabBridge:Divider(c)
+        local div = cat:CreateLabel(c.Title or "----------------", "lucide-minus")
+        return createProxy(div, "Divider")
+    end
+    
+    function TabBridge:Label(c)
+        local lab = cat:CreateLabel(c.Title or "", "lucide-info")
+        return createProxy(lab, "Label")
+    end
+    
+    -- Compatibility aliases
     TabBridge.CreateButton = TabBridge.Button
     TabBridge.CreateToggle = TabBridge.Toggle
     TabBridge.CreateSlider = TabBridge.Slider
     TabBridge.CreateDropdown = TabBridge.Dropdown
+    TabBridge.CreateLabel = TabBridge.Label
+    TabBridge.CreateDivider = TabBridge.Divider
     
     return TabBridge
 end
@@ -87,42 +133,52 @@ local ZyphoraBridge = _G.WindUI_Bridge_Class.new(Library, Window)
 local function ExecuteGameScript(source, name)
     print("Zyphora: Starting execution for " .. name)
     
-    -- We will not use setfenv as it can be restrictive. 
-    -- Instead, we will inject our bridge into the global environment temporarily.
     _G.WindUI_Bridge = ZyphoraBridge
-    
-    -- Create a wrapper function that returns the bridge
     local bridge_func = function() return ZyphoraBridge end
     
-    -- Global hooks (safer than setfenv for complex scripts)
     local old_loadstring = loadstring
     local old_httpget = game.HttpGet
     
-    -- Inject hooks
-    _G.loadstring = function(s)
+    -- Environment setup
+    local env = setmetatable({}, {__index = _G})
+    env.loadstring = function(s)
         if type(s) == "string" and (s:find("WindUI") or s:find("ZYPHORA_BRIDGE")) then
             return bridge_func
         end
         return old_loadstring(s)
     end
-    
-    -- Run the source
+    env.game = setmetatable({}, {
+        __index = function(t, k)
+            if k == "HttpGet" then
+                return function(self, url, ...)
+                    if type(url) == "string" and url:find("WindUI") then
+                        return "ZYPHORA_BRIDGE"
+                    end
+                    return old_httpget(game, url, ...)
+                end
+            end
+            return game[k]
+        end
+    })
+    env.hs = ZyphoraBridge
+    env.er = ZyphoraBridge
+    env.WindUI = ZyphoraBridge
+
     local f, err = old_loadstring(source)
     if f then
+        setfenv(f, env)
         local success, fault = pcall(f)
         if not success then 
-            warn("Zyphora ["..name.."] Execution Error: " .. tostring(fault))
-            Library:Notify("Zyphora Error", "Script error in "..name, 5)
+            local errMsg = tostring(fault)
+            warn("Zyphora ["..name.."] Execution Error: " .. errMsg)
+            Library:Notify("Execution Error", "Check console for details.", 7)
         else
-            print("Zyphora: Successfully loaded " .. name)
-            Library:Notify("Zyphora Hub", name .. " Loaded Successfully!", 3)
+            Library:Notify("Zyphora Hub", name .. " Script Active!", 3)
         end
     else
         warn("Zyphora ["..name.."] Syntax Error: " .. tostring(err))
-        Library:Notify("Zyphora Error", "Syntax error in "..name, 5)
+        Library:Notify("Syntax Error", "Script failed to load.", 5)
     end
-    
-    -- Restore original functions (optional, but safer to keep for deobf logic)
 end
 
 --// 4. GAME LOGIC & DEBUG
@@ -20257,4 +20313,4 @@ end)({[3054+-15374]=nil,[21794+6925]='Run',[716658180/-27713]='Swim',[-1881+3151
     end
 end)
 
-Library:Notify("Zyphora Hub", "Ready!", 5)
+Library:Notify("Zyphora Hub", "V8 Ultimate Loaded!", 5)
