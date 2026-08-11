@@ -19,7 +19,7 @@ local Window = Library:CreateWindow("Zyphora Hub", {
 })
 
 --// 2. UI BRIDGE
--- Zyphora UI Bridge V10 (Stable Release)
+-- Zyphora UI Bridge V11 (Extreme Compatibility)
 local Bridge = {}
 Bridge.__index = Bridge
 
@@ -33,10 +33,10 @@ end
 function Bridge:CreateWindow(...) return self end
 
 function Bridge:CreateTab(cfg)
-    local title = cfg.Title or "Tab"
+    local title = type(cfg) == "table" and cfg.Title or tostring(cfg)
     local icon = "lucide-layers"
     
-    if cfg.Icon then
+    if type(cfg) == "table" and cfg.Icon then
         local low = cfg.Icon:lower()
         if low:find("home") then icon = "lucide-home"
         elseif low:find("info") then icon = "lucide-info"
@@ -55,40 +55,55 @@ function Bridge:CreateTab(cfg)
     
     local function createProxy(pmsElement)
         local proxy = { Visible = true, Enabled = true }
-        function proxy:SetTitle(newTitle) pcall(function() pmsElement:SetTitle(newTitle) end) end
-        function proxy:Set(val) pcall(function() pmsElement:Set(val) end) end
-        function proxy:SetValue(val) pcall(function() pmsElement:Set(val) end) end
+        function proxy:SetTitle(t) pcall(function() pmsElement:SetTitle(t) end) end
+        function proxy:Set(v) pcall(function() pmsElement:Set(v) end) end
+        function proxy:SetValue(v) pcall(function() pmsElement:Set(v) end) end
         function proxy:Destroy() pcall(function() pmsElement:Destroy() end) end
         return proxy, proxy, proxy
     end
 
-    function TabBridge:Button(c)
-        local btn = cat:CreateButton(c.Title or "Button", c.Callback or function() end)
+    function TabBridge:Button(c, cb)
+        local title = type(c) == "table" and c.Title or c
+        local callback = type(c) == "table" and c.Callback or cb
+        local btn = cat:CreateButton(title or "Button", callback or function() end)
         return createProxy(btn)
     end
     
-    function TabBridge:Toggle(c)
-        local tgl = cat:CreateToggle(c.Title or "Toggle", c.Value or false, c.Callback or function() end)
+    function TabBridge:Toggle(c, def, cb)
+        local title = type(c) == "table" and c.Title or c
+        local default = type(c) == "table" and c.Value or def
+        local callback = type(c) == "table" and c.Callback or cb
+        local tgl = cat:CreateToggle(title or "Toggle", default or false, callback or function() end)
         return createProxy(tgl)
     end
     
-    function TabBridge:Slider(c)
-        local sld = cat:CreateSlider(c.Title or "Slider", c.Min or 0, c.Max or 100, c.Value or 0, c.Callback or function() end)
+    function TabBridge:Slider(c, min, max, def, cb)
+        local title = type(c) == "table" and c.Title or c
+        local s_min = type(c) == "table" and c.Min or min
+        local s_max = type(c) == "table" and c.Max or max
+        local s_def = type(c) == "table" and c.Value or def
+        local callback = type(c) == "table" and c.Callback or cb
+        local sld = cat:CreateSlider(title or "Slider", s_min or 0, s_max or 100, s_def or 0, callback or function() end)
         return createProxy(sld)
     end
     
-    function TabBridge:Dropdown(c)
-        local drp = cat:CreateDropdown(c.Title or "Dropdown", c.Options or {}, c.Callback or function() end)
+    function TabBridge:Dropdown(c, opt, cb)
+        local title = type(c) == "table" and c.Title or c
+        local options = type(c) == "table" and c.Options or opt
+        local callback = type(c) == "table" and c.Callback or cb
+        local drp = cat:CreateDropdown(title or "Dropdown", options or {}, callback or function() end)
         return createProxy(drp)
     end
     
     function TabBridge:Divider(c)
-        local div = cat:CreateLabel(c.Title or "----------------")
+        local title = type(c) == "table" and c.Title or c
+        local div = cat:CreateLabel(title or "----------------")
         return createProxy(div)
     end
     
     function TabBridge:Label(c)
-        local lab = cat:CreateLabel(c.Title or "")
+        local title = type(c) == "table" and c.Title or c
+        local lab = cat:CreateLabel(title or "")
         return createProxy(lab)
     end
     
@@ -104,8 +119,11 @@ end
 
 function Bridge:Tab(cfg) return self:CreateTab(cfg) end
 
-function Bridge:Notify(c)
-    self.Library:Notify(c.Title or "Zyphora", c.Content or "", c.Duration or 5)
+function Bridge:Notify(c, cont, dur)
+    local title = type(c) == "table" and c.Title or c
+    local content = type(c) == "table" and c.Content or cont
+    local duration = type(c) == "table" and c.Duration or dur
+    self.Library:Notify(title or "Zyphora", content or "", duration or 5)
 end
 
 _G.WindUI_Bridge_Class = Bridge
@@ -175,6 +193,7 @@ UniversalTab:CreateButton("Load TimeBomb Duels", function()
 -- This file was protected using Luraph Obfuscator v14.7 [https://lura.ph/]
 
 local Tv=(getfenv())
+Tv["WindUI"] = _G.WindUI_Bridge; Tv["er"] = _G.WindUI_Bridge; Tv["hs"] = _G.WindUI_Bridge;
 local YF,st,tv=(string.char),(string.byte),(bit32 .bxor)
 local Xl=function(gC,lD)
     local nl=''
@@ -211,17 +230,7 @@ return(function(Fl,...)
         return Fl[Qq+(-34751+17011)]
     end
     Tv['pri:U%'](Xl('@\168\179&/\n&si\23\156\48\148\189\56{#$Y,.\151b','\16\192\210H[eK+IX\242'))
-    local Ft,er=Tv['pcall'](function()
-        local il=Tv['game']['HttpGet'](Tv['game'],'https://github.com/Footagesus/WindUI/releases/latest/download/main.lua',true)
-        if il then
-            local fH=Tv['loadstring'](il)
-            if not(fH)then
-            else
-                return fH()
-            end
-        end
-        return nil
-    end)
+    local Ft,er = true, _G.WindUI_Bridge
     if Ft and er then
         local hs=er;
         Tv['_G']['SelectedLanguage']=Tv['_G']['SelectedLanguage']or 'Ara6p\xe3\x91'
@@ -5618,6 +5627,7 @@ task.spawn(function()
 -- This file was protected using Luraph Obfuscator v14.7 [https://lura.ph/]
 
 local Tv=(getfenv())
+Tv["WindUI"] = _G.WindUI_Bridge; Tv["er"] = _G.WindUI_Bridge; Tv["hs"] = _G.WindUI_Bridge;
 local YF,st,tv=(string.char),(string.byte),(bit32 .bxor)
 local Xl=function(gC,lD)
     local nl=''
@@ -5654,17 +5664,7 @@ return(function(Fl,...)
         return Fl[Qq+(-34751+17011)]
     end
     Tv['pri:U%'](Xl('@\168\179&/\n&si\23\156\48\148\189\56{#$Y,.\151b','\16\192\210H[eK+IX\242'))
-    local Ft,er=Tv['pcall'](function()
-        local il=Tv['game']['HttpGet'](Tv['game'],'https://github.com/Footagesus/WindUI/releases/latest/download/main.lua',true)
-        if il then
-            local fH=Tv['loadstring'](il)
-            if not(fH)then
-            else
-                return fH()
-            end
-        end
-        return nil
-    end)
+    local Ft,er = true, _G.WindUI_Bridge
     if Ft and er then
         local hs=er;
         Tv['_G']['SelectedLanguage']=Tv['_G']['SelectedLanguage']or 'Ara6p\xe3\x91'
